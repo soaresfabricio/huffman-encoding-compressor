@@ -1,7 +1,9 @@
 package compressor
 
 import (
+	"bufio"
 	"encoding/binary"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -33,13 +35,16 @@ func CompressFile(input string, output string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer outputFile.Close()
 
-	binary.Write(outputFile, binary.LittleEndian, &byteCount)
+	binary.Write(outputFile, binary.LittleEndian, byteCount)
 
 	n, err := outputFile.Seek(4, 1)
 	if err != nil {
 		log.Fatal(n, err)
 	}
+
+	fmt.Println("Compressing...")
 
 	root := BuildHuffmanTree(byteCount)
 
@@ -47,6 +52,8 @@ func CompressFile(input string, output string) {
 	size := uint32(0)
 
 	bar := pb.StartNew(len(inputData))
+
+	bufferedWriter := bufio.NewWriter(outputFile)
 
 	for _, c := range inputData {
 
@@ -67,13 +74,14 @@ func CompressFile(input string, output string) {
 			size++
 
 			if (size % 8) == 0 {
-				binary.Write(outputFile, binary.LittleEndian, aux)
+				bufferedWriter.WriteByte(aux)
 				aux = 0
 			}
 		}
 	}
 
-	binary.Write(outputFile, binary.LittleEndian, aux)
+	bufferedWriter.WriteByte(aux)
+	bufferedWriter.Flush()
 
 	outputFile.Seek(1024, 0)
 
@@ -123,9 +131,13 @@ func DecompressFile(input string, output string) {
 	position := uint32(0)
 	aux := byte(0)
 
+	fmt.Println("Decompressing...")
+
 	root := BuildHuffmanTree(byteCount)
 
 	bar := pb.StartNew(int(size) + 1)
+
+	bufferedWriter := bufio.NewWriter(outputFile)
 
 	for position < size {
 
@@ -144,9 +156,9 @@ func DecompressFile(input string, output string) {
 			}
 
 		}
-		binary.Write(outputFile, binary.LittleEndian, &(currentNode.c))
-
+		bufferedWriter.WriteByte(currentNode.c)
 	}
+	bufferedWriter.Flush()
 
 	outputFile.Close()
 	inputFile.Close()
