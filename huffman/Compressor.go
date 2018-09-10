@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	pb "gopkg.in/cheggaaa/pb.v1"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 // CompressFile will compress input to ouput using huffman
@@ -16,7 +16,7 @@ func CompressFile(input string, output string) {
 
 	inputFile, err := os.Open(input)
 	if err != nil {
-		log.Panicf("There was a problem reading file: %s", err)
+		log.Fatal(err)
 	}
 
 	inputData, err := ioutil.ReadAll(inputFile)
@@ -24,12 +24,11 @@ func CompressFile(input string, output string) {
 		log.Fatal(err)
 	}
 
-	var byteCount = make([]uint32, 256)
+	byteCount := make([]uint32, 256)
 
 	for _, x := range inputData {
 		byteCount[x]++
 	}
-	inputFile.Close()
 
 	outputFile, err := os.Create(output)
 	if err != nil {
@@ -37,7 +36,9 @@ func CompressFile(input string, output string) {
 	}
 	defer outputFile.Close()
 
-	binary.Write(outputFile, binary.LittleEndian, byteCount)
+	bufferedWriter := bufio.NewWriter(outputFile)
+
+	binary.Write(bufferedWriter, binary.LittleEndian, byteCount)
 
 	n, err := outputFile.Seek(4, 1)
 	if err != nil {
@@ -53,14 +54,13 @@ func CompressFile(input string, output string) {
 
 	bar := pb.StartNew(len(inputData))
 
-	bufferedWriter := bufio.NewWriter(outputFile)
+	buffer := make([]byte, 1024)
 
 	for _, c := range inputData {
 
 		bar.Increment()
 
-		buffer := make([]byte, 2048)
-		getCode(root, c, buffer, 0)
+		getCode(root, &c, buffer, 0)
 
 		for _, i := range buffer {
 
@@ -71,6 +71,7 @@ func CompressFile(input string, output string) {
 			if i == 1 {
 				aux = aux | (1 << (size % 8))
 			}
+
 			size++
 
 			if (size % 8) == 0 {
@@ -89,8 +90,8 @@ func CompressFile(input string, output string) {
 
 }
 
-func getCode(n *treeNode, c byte, buffer []byte, size int) bool {
-	if !(n.left != nil || n.right != nil) && (n.c == c) {
+func getCode(n *treeNode, c *byte, buffer []byte, size int) bool {
+	if !(n.left != nil || n.right != nil) && (n.c == *c) {
 		buffer[size] = 2
 		return true
 	} else {
@@ -138,12 +139,13 @@ func DecompressFile(input string, output string) {
 	bar := pb.StartNew(int(size) + 1)
 
 	bufferedWriter := bufio.NewWriter(outputFile)
+	bufferedReader := bufio.NewReader(inputFile)
 
 	for position < size {
 
 		currentNode := root
 		for (currentNode.left != nil) || (currentNode.right != nil) {
-			if generateBit(inputFile, position, &aux) {
+			if generateBit(bufferedReader, position, &aux) {
 				currentNode = currentNode.right
 				position = position + 1
 				bar.Increment()
@@ -164,10 +166,10 @@ func DecompressFile(input string, output string) {
 	inputFile.Close()
 }
 
-func generateBit(inputFile *os.File, position uint32, aux *byte) bool {
+func generateBit(inReader *bufio.Reader, position uint32, aux *byte) bool {
 
 	if (position % 8) == 0 {
-		binary.Read(inputFile, binary.LittleEndian, aux)
+		binary.Read(inReader, binary.LittleEndian, aux)
 	}
 
 	if (*aux)&(1<<(position%8)) != 0 {

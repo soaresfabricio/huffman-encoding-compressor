@@ -17,7 +17,7 @@ type list struct {
 	elements int
 }
 
-func InsertList(n *listNode, l *list) {
+func (l *list) InsertList(n *listNode) {
 
 	if l.head == nil {
 		l.head = n
@@ -39,19 +39,9 @@ func InsertList(n *listNode, l *list) {
 
 }
 
-func NewTreeNode(c byte, frequency uint32, left *treeNode, right *treeNode) *treeNode {
-	return &treeNode{c, frequency, left, right}
-}
-
-func NewListNode(treeN *treeNode) *listNode {
-	return &listNode{treeN, nil}
-
-}
-
-func PopListMin(l *list) *treeNode {
+func (l *list) PopListMin() *treeNode {
 	aux := l.head
 	aux2 := aux.n
-
 	l.head = aux.next
 	(l.elements)--
 	return aux2
@@ -63,18 +53,18 @@ func BuildHuffmanTree(byteCount []uint32) *treeNode {
 
 	for i := 0; i < 256; i++ {
 		if byteCount[i] != 0 {
-			InsertList(NewListNode(NewTreeNode(byte(i), byteCount[i], nil, nil)), &l)
+			l.InsertList(&listNode{&treeNode{byte(i), byteCount[i], nil, nil}, nil})
 		}
 	}
 
 	for l.elements > 1 {
-		leftNode := PopListMin(&l)
-		rightNode := PopListMin(&l)
+		leftNode := l.PopListMin()
+		rightNode := l.PopListMin()
 
-		sum := NewTreeNode('#', (leftNode.frequency)+(rightNode.frequency), leftNode, rightNode)
+		sum := &treeNode{'#', (leftNode.frequency) + (rightNode.frequency), leftNode, rightNode}
 
-		InsertList(NewListNode(sum), &l)
+		l.InsertList(&listNode{sum, nil})
 	}
 
-	return PopListMin(&l)
+	return l.PopListMin()
 }
