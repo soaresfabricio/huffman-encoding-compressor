@@ -1,6 +1,6 @@
 #### File Compressor and Decompressor written in [Go](https://golang.org)
 
-As part of my explorings with the Go language I decided to write a simple File Compressor, for it is the kind of project in which [buffered reading, writing and seeking](https://www.devdungeon.com/content/working-files-go#write_buffered) are staples (otherwise the compressed data may not preserve it's original state). Plus, I had to work with Go's very abstract way of dealing with pointers, errors and loops.
+As part of my explorings with the Go language I decided to write a simple File Compressor, for it is the kind of project in which [buffered reading, writing and seeking](https://www.devdungeon.com/content/working-files-go#write_buffered) are staples (otherwise the compressed data may not preserve it's original state). Plus, I had to work with Go's pointers, errors and conditional structures.
 
 I also played around with [this neat progress bar package](https://gopkg.in/cheggaaa/pb.v1).
 
@@ -23,13 +23,14 @@ This [entropy encoding](https://en.wikipedia.org/wiki/Entropy_encoding) techniqu
 ###### Compiling
 
 ```shell
-$ go build main
+$ go get
+$ go build -o app.bin
 ```
 
 ###### Running
 
 ```shell
-$ ./main -c uncompressed compressed
-$ ./main -x compressed uncompressed
+$ ./app.bin -c uncompressed compressed
+$ ./app.bin -x compressed uncompressed
 ```
 
